@@ -2,11 +2,17 @@
 import hashlib
 import hmac
 import urllib2
+import sys
 
-api_key = "28a1af64c732262ce0605d18c39afa05dd23b85e"
-secret_key = "446563791b9d9155fa88e90bfe320418fc8b7bcc"
+api_key = "fc2a447dbb11fae5c042b271a3cabc91a6c8f0df"
+secret_key = "559e2176efa64bdf723a03a9ac59f1d7b965efb2"
 
-path = "/generate_key"
+if len(sys.argv) <> 2:
+    print "Usage:"
+    print "python "+sys.argv[0]+" <label>"
+    sys.exit(1)
+
+path = "/generate_key/"+sys.argv[1]
 
 params = {}
 params["apikey"] = api_key

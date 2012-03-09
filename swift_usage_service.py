@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 
 import bottle # setup: sudo pip install bottle
-import pymongo # setup: sudo pip install pymongo
 import datetime
 import hmac
 import hashlib
 import urllib
 
-# verify that the incoming request has access to the data.
+import db_connect # uses pymongo...
+
+# @decorator: verify that the incoming request has a valid apikey and signature.
 def authorize(callback):
     def validate(*args, **kwargs):
         # rebuild the signature in order to check if the signature that was passed is valid.
@@ -19,12 +20,7 @@ def authorize(callback):
         sig_str = bottle.request.path+"?"+"&".join(sorted(map(lambda (k,v):k+"="+v, sig_params.items())))
         
         if "apikey" in bottle.request.query:
-            db = pymongo.Connection('localhost', 27017).auth
-
-            #api_key = hmac.new('cloudops', str(datetime.datetime.now()), hashlib.sha1).hexdigest()
-            #secret_key = hmac.new(api_key, 'cloudops', hashlib.sha1).hexdigest()
-            #db.keys.insert({"api_key":api_key, "secret_key":secret_key})
-        
+            db = db_connect.use.auth
             keys = db.keys.find_one({"api_key":bottle.request.query.apikey})
             if keys:
                 signature = hmac.new(keys["secret_key"].encode('utf-8'), sig_str, hashlib.sha1).hexdigest()
@@ -32,32 +28,28 @@ def authorize(callback):
                     return callback(*args, **kwargs)
                 else:
                     bottle.abort(403, "The request is not authorized.")
-
             else:
                 bottle.abort(403, "The request is not authorized.")
         else:
             bottle.abort(403, "The request is missing the required 'apikey'.")
-
     return validate
 
 
-# verify that the incoming request is by an admin.
+# @decorator: verify that the incoming request is by an admin (MUST be used with @authorize for security).
 def verify_admin(callback):
     def validate(*args, **kwargs):
         if "apikey" in bottle.request.query:
-            db = pymongo.Connection('localhost', 27017).auth
+            db = db_connect.use.auth
             keys = db.keys.find_one({"api_key":bottle.request.query.apikey})
             if keys:
                 if "admin" in keys and keys["admin"]:
                     return callback(*args, **kwargs)
                 else:
                     bottle.abort(403, "The request is not authorized.")
-
             else:
                 bottle.abort(403, "The request is not authorized.")
         else:
             bottle.abort(403, "The request is missing the required 'apikey'.")
-
     return validate
 
 
@@ -70,7 +62,7 @@ def index():
 # usage syntax:  describe the syntax for the  usage functionality.
 @bottle.route('/usage')
 def usage_index():
-    return "URL Syntax: /usage/account?start=2012020100&end=2012030100&apikey=your_api_key&signature=generated_signature"
+    return "URL Syntax: /usage/account?start=2012030100&end=2012030300&apikey=520f6...6bf38&signature=83a12...dbec1"
 
 
 # usage function: does the usage work.
@@ -83,86 +75,7 @@ def usage(account):
         bottle.abort(400, "You must specify 'start' and 'end' dates. Check '/usage' for syntax.")
     else:
         output = {}
-
-        db = pymongo.Connection('localhost', 27017).swift
-        #db.usage.insert({
-        #    "account":"admin",
-        #    "usage":{
-        #        "2012030100":{
-        #"2xx":               0,
-        #"4xx":               0,
-        #"5xx":               0,
-        #"COPY":              0,
-        #"DELETE":            0,
-        #"GET":               0,
-        #"HEAD":              0,
-        #"POST":              0,
-        #"PUT":               0,
-        #"account_requests":  0,
-        #"bytes_used":        0,
-        #"container_count":   1,
-        #"container_requests":0,
-        #"object_count":      0,
-        #"object_requests":   0,
-        #"ops_count":         0,
-        #"public_bw_in":      0,
-        #"public_bw_out":     0,
-        #"public_request":    0,
-        #"replica_count":     1,
-        #"service_bw_in":     0,
-        #"service_bw_out":    0,
-        #"service_request":   0},
-        #        "2012030200":{
-        #"2xx":               0,
-        #"4xx":               0,
-        #"5xx":               0,
-        #"COPY":              0,
-        #"DELETE":            0,
-        #"GET":               0,
-        #"HEAD":              0,
-        #"POST":              0,
-        #"PUT":               0,
-        #"account_requests":  0,
-        #"bytes_used":        108838,
-        #"container_count":   4,
-        #"container_requests":0,
-        #"object_count":      464,
-        #"object_requests":   0,
-        #"ops_count":         0,
-        #"public_bw_in":      0,
-        #"public_bw_out":     0,
-        #"public_request":    0,
-        #"replica_count":     1,
-        #"service_bw_in":     0,
-        #"service_bw_out":    0,
-        #"service_request":   0},
-        #        "2012030300":{
-        #"2xx":               0,
-        #"4xx":               0,
-        #"5xx":               0,
-        #"COPY":              0,
-        #"DELETE":            0,
-        #"GET":               0,
-        #"HEAD":              0,
-        #"POST":              0,
-        #"PUT":               0,
-        #"account_requests":  0,
-        #"bytes_used":        0,
-        #"container_count":   0,
-        #"container_requests":0,
-        #"object_count":      0,
-        #"object_requests":   0,
-        #"ops_count":         0,
-        #"public_bw_in":      0,
-        #"public_bw_out":     0,
-        #"public_request":    0,
-        #"replica_count":     1,
-        #"service_bw_in":     0,
-        #"service_bw_out":    0,
-        #"service_request":   0}
-        #    }
-        #})
-        #db.usage.remove({"account":"admin"})
+        db = db_connect.use.swift
         
         # find the account usage via the account name passed via the url
         usage = db.usage.find_one({"account":account})
@@ -192,32 +105,28 @@ def usage(account):
                                 output[k] = int(output[k]) + int(v) # this label exists, sum it with the current value
                             else:
                                 output[k] = int(v) # this label does not exist yet, seed it with the current value
-
                 # increment the current datetime stamp by 1 hour to generate the next date_key.
                 current += datetime.timedelta(hours=1)
-
         return output
 
 
 # generate keys: creates new 'non-admin' authorization keys (requires 'admin').
-@bottle.route('/generate_key', apply=[authorize, verify_admin])
-def generate_key():
-    db = pymongo.Connection('localhost', 27017).auth
-    
+@bottle.route('/generate_key/<label>', apply=[authorize, verify_admin])
+def generate_key(label):
+    db = db_connect.use.auth
     keys = {}
+    keys["label"] = label
     keys["api_key"] = hmac.new('cloudops', str(datetime.datetime.now()), hashlib.sha1).hexdigest()
     keys["secret_key"] = hmac.new(keys["api_key"], 'cloudops', hashlib.sha1).hexdigest()
-    db.keys.insert({"api_key":keys["api_key"], "secret_key":keys["secret_key"]})
-
+    db.keys.insert({"api_key":keys["api_key"], "secret_key":keys["secret_key"], "label":keys["label"]})
     return keys
-
-
 
 
 # favicon: serve a favicon.ico so the pages do not return a 404 for the /favicon.ico path in the browser.
 @bottle.route('/favicon.ico')
 def favicon():
     return bottle.static_file('favicon.ico', root='./static/')
+
 
 # enable debugging.
 bottle.debug(True)

@@ -7,8 +7,8 @@ account = "admin"
 start = "2012030100"
 end = "2012030300"
 
-api_key = "6f75df4bfbae4e5c6db304f7b42f7d730706a8ed"
-secret_key = "35b2877ff3aed82ac0292bdb87b2874334324c4a"
+api_key = "4ce66c97c2d38ca211f4b3d78779f72d0fada9cc"
+secret_key = "da1a4f2e7b8e3a97c2b33a06575feebbcd2d5480"
 
 path = "/usage/"+account
 
