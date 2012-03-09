@@ -3,7 +3,7 @@
 import datetime
 import hmac
 import hashlib
-import db_connect # uses pymongo...
+from swift_usage import db_connect # uses pymongo...
 
 db = db_connect.use.auth
 keys = {}

@@ -94,7 +94,7 @@ def usage(account):
             
             # handle all requests other than the 'single hour' request.
             # start <= usage < end
-            current = f_dt # set the 'current' object which will increment by 1 hour and act as a key datestamp.
+            current = f_dt # set the 'current' datetime object which will increment by 1 hour and act as a key datestamp.
             while current < t_dt:
                 # check for data in the database
                 date_key = current.strftime("%Y%m%d%H") # create the date_key from the current datetime
@@ -132,4 +132,4 @@ def favicon():
 bottle.debug(True)
 
 # start the server.
-bottle.run(host='172.16.23.61', port=8888, reloader=True)
+bottle.run(server=bottle.PasteServer, host='172.16.23.61', port=8888, reloader=True)
