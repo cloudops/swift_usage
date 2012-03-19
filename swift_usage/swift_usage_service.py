@@ -5,8 +5,7 @@ import datetime
 import hmac
 import hashlib
 import urllib
-
-import db_connect # uses pymongo...
+from swift_usage.utils import db_connect # requires pymongo
 
 # @decorator: verify that the incoming request has a valid apikey and signature.
 def authorize(callback):

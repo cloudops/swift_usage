@@ -3,8 +3,8 @@
 import datetime
 import csv
 import zlib
-from swift_usage import db_connect # requires pymongo
-from swift_usage import swift_client
+from swift_usage.utils import db_connect # requires pymongo
+from swift_usage.utils import swift_client
 
 swift_auth_url = "http://172.16.23.61:8080/v1.0"
 swift_user = "admin"
