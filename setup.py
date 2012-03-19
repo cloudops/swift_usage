@@ -11,4 +11,5 @@ setup(
     author='CloudOps / Will Stevens (swill)',
     author_email='wstevens@cloudops.com',
     packages=find_packages(),
+    install_requires=['bottle', 'pymongo']
 )
