@@ -4,7 +4,7 @@ import hashlib
 import hmac
 import urllib2
 
-account = "admin"
+account = "cs_admin"
 start = "2012030100"
 end = "2012040100"
 
