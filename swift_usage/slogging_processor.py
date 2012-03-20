@@ -13,7 +13,7 @@ swift_key = "DTaacz6qeuiCmfd6yNuuLYs5oAiHhhrX2aJbwfJ2sZb1hG2YxQPswm6tyn8rSV3D903
 slogging_container = "log_processing_data" # slogging container where the collector uploads to.
 dt_now_delta = 5 # hours prior to now that we will loop till (we will never have logs up to date).
 
-db = db_connect.use.swift # connect to the usage db 'swift'
+db = db_connect.db # connect to the usage db
 swift = swift_client.Connection(swift_auth_url, swift_user, swift_key) # create a swift client for accessing data in swift.
 
 # get the list of objects in the slogging container.
@@ -41,20 +41,32 @@ def process_dt(dt, from_miss=False):
                 dt_key = "%s%s%s%s" % (data[0][0:4], data[0][5:7], data[0][8:10], data[0][11:13]) # format: YYYY/MM/DD HH:MM:SS => YYYYMMDDHH
                 existing_usage = db.usage.find_one({"account":account})
                 if existing_usage: # there is an existing account with usage, add this usage to it.
-                    if dt_key not in existing_usage["usage"]: # put this hour's data in the database
+                    if dt_key in existing_usage["usage"]: # update this hours data using this new data.
+                        print "=> UPDATING hour '%s' for '%s'..." % (dt_key, account)
+                        existing_obj = existing_usage["usage"][dt_key]
+                        usage_obj = {}
+                        for i, header in enumerate(headers[2:]):
+                            usage_obj[header] = data[i+2]
+                        updated_obj = {}
+                        for k, v in usage_obj.items():
+                            if k == 'bytes_used':
+                                updated_obj[k] = (int(existing_obj[k]) + int(usage_obj[k])) / 2
+                            else:
+                                updated_obj[k] = int(existing_obj[k]) + int(usage_obj[k])
+                        print "data: "+str({dt_key:updated_obj})
+                        db.usage.update({"account":account}, {"$set":{"usage."+dt_key:updated_obj}})
+                    else: # add this data as this hours data.
                         print "=> INSERTING hour '%s' into '%s'..." % (dt_key, account)
                         usage_obj = {}
                         for i, header in enumerate(headers[2:]):
-                            usage_obj[header] = data[i]
+                            usage_obj[header] = data[i+2]
                         print "data: "+str({dt_key:usage_obj})
                         db.usage.update({"account":account}, {"$set":{"usage."+dt_key:usage_obj}})
-                    else: 
-                        print "=> SKIPPING hour '%s' for '%s', it already exists..." % (dt_key, account)
                 else: # create the user and seed it with the current data.
                     print "=> CREATING usage account '%s' starting from '%s'..." % (account, dt_key)
                     usage_obj = {}
                     for i, header in enumerate(headers[2:]):
-                        usage_obj[header] = data[i]
+                        usage_obj[header] = data[i+2]
                     print "data: "+str({dt_key:usage_obj})
                     db.usage.insert({"account":account, "usage":{dt_key:usage_obj}})
                 

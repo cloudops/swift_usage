@@ -8,8 +8,8 @@ account = "cs_admin"
 start = "2012030100"
 end = "2012040100"
 
-api_key = "4ce66c97c2d38ca211f4b3d78779f72d0fada9cc"
-secret_key = "da1a4f2e7b8e3a97c2b33a06575feebbcd2d5480"
+api_key = "e7f36a604fc90f0d58c0728b4466c49d28593a75"
+secret_key = "0b3cfeff7f6bfa46ce95e123ad74e8aa1703fc38"
 
 path = "/usage/"+account
 

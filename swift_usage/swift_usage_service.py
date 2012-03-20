@@ -19,8 +19,8 @@ def authorize(callback):
         sig_str = bottle.request.path+"?"+"&".join(sorted(map(lambda (k,v):k+"="+v, sig_params.items())))
         
         if "apikey" in bottle.request.query:
-            db = db_connect.use.auth
-            keys = db.keys.find_one({"api_key":bottle.request.query.apikey})
+            db = db_connect.db
+            keys = db.auth.find_one({"api_key":bottle.request.query.apikey})
             if keys:
                 signature = hmac.new(keys["secret_key"].encode('utf-8'), sig_str, hashlib.sha1).hexdigest()
                 if signature == bottle.request.query.signature:
@@ -38,8 +38,8 @@ def authorize(callback):
 def verify_admin(callback):
     def validate(*args, **kwargs):
         if "apikey" in bottle.request.query:
-            db = db_connect.use.auth
-            keys = db.keys.find_one({"api_key":bottle.request.query.apikey})
+            db = db_connect.db
+            keys = db.auth.find_one({"api_key":bottle.request.query.apikey})
             if keys:
                 if "admin" in keys and keys["admin"]:
                     return callback(*args, **kwargs)
@@ -74,7 +74,7 @@ def usage(account):
         bottle.abort(400, "You must specify 'start' and 'end' dates. Check '/usage' for syntax.")
     else:
         output = {}
-        db = db_connect.use.swift
+        db = db_connect.db
         
         # find the account usage via the account name passed via the url
         usage = db.usage.find_one({"account":account})
@@ -112,12 +112,12 @@ def usage(account):
 # generate keys: creates new 'non-admin' authorization keys (requires 'admin').
 @bottle.route('/generate_key/<label>', apply=[authorize, verify_admin])
 def generate_key(label):
-    db = db_connect.use.auth
+    db = db_connect.db
     keys = {}
     keys["label"] = label
     keys["api_key"] = hmac.new('cloudops', str(datetime.datetime.now()), hashlib.sha1).hexdigest()
     keys["secret_key"] = hmac.new(keys["api_key"], 'cloudops', hashlib.sha1).hexdigest()
-    db.keys.insert({"api_key":keys["api_key"], "secret_key":keys["secret_key"], "label":keys["label"]})
+    db.auth.insert({"api_key":keys["api_key"], "secret_key":keys["secret_key"], "label":keys["label"]})
     return keys
 
 
