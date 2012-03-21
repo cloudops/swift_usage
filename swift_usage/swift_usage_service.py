@@ -94,6 +94,7 @@ def usage(account):
             # handle all requests other than the 'single hour' request.
             # start <= usage < end
             current = f_dt # set the 'current' datetime object which will increment by 1 hour and act as a key datestamp.
+            item_count = 0
             while current < t_dt:
                 # check for data in the database
                 date_key = current.strftime("%Y%m%d%H") # create the date_key from the current datetime
@@ -104,8 +105,10 @@ def usage(account):
                                 output[k] = int(output[k]) + int(v) # this label exists, sum it with the current value
                             else:
                                 output[k] = int(v) # this label does not exist yet, seed it with the current value
+                    item_count += 1
                 # increment the current datetime stamp by 1 hour to generate the next date_key.
                 current += datetime.timedelta(hours=1)
+            output['bytes_used'] = output['bytes_used'] / item_count # bytes_used should be an average.
         return output
 
 
