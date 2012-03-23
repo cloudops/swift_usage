@@ -92,29 +92,32 @@ def process_dt(dt, from_miss=False):
         db.processor.update({"processor":"slogging"}, {"$set":{"current_dt":next_dt}})
 
 
+# START RUNTIME
+# -------------
 # setup the processor and start execution.
-processor = db.processor.find_one({"processor":"slogging"})
-# if we do not have an slogging processor, create one.
-if not processor:
-    print "no slogging processor, creating one..."
-    # grab the first file in the slogging csv sequence and establish the first current_file and current_dt
-    file_pieces = log_names[0].split('/')
-    current_dt = datetime.datetime(int(file_pieces[0]), int(file_pieces[1]), int(file_pieces[2]), int(file_pieces[3]))
-    db.processor.insert({"processor":"slogging", "current_dt":current_dt})
+if len(log_names) > 0:
     processor = db.processor.find_one({"processor":"slogging"})
+    # if we do not have an slogging processor, create one.
+    if not processor:
+        print "no slogging processor, creating one..."
+        # grab the first file in the slogging csv sequence and establish the current_dt
+        file_pieces = log_names[0].split('/')
+        current_dt = datetime.datetime(int(file_pieces[0]), int(file_pieces[1]), int(file_pieces[2]), int(file_pieces[3]))
+        db.processor.insert({"processor":"slogging", "current_dt":current_dt})
+        processor = db.processor.find_one({"processor":"slogging"})
 
-# process the previous misses
-if "misses" in processor:
-    for dt in processor["misses"]:
-        process_dt(dt, from_miss=True)
+    # process the previous misses
+    if "misses" in processor:
+        for dt in processor["misses"]:
+            process_dt(dt, from_miss=True)
 
-# grab the processor again because it has likely changed after processing the misses.
-processor = db.processor.find_one({"processor":"slogging"})
-current_dt = processor["current_dt"]
-last_dt = datetime.datetime.now() - datetime.timedelta(hours=dt_now_delta)
-while current_dt <= last_dt:
-    process_dt(current_dt)
-    current_dt += datetime.timedelta(hours=1) # minimize db access by just incrementing the current dt with a local variable instead of accessing the db each time.
+    # grab the processor again because it has likely changed after processing the misses.
+    processor = db.processor.find_one({"processor":"slogging"})
+    current_dt = processor["current_dt"]
+    last_dt = datetime.datetime.now() - datetime.timedelta(hours=dt_now_delta)
+    while current_dt <= last_dt:
+        process_dt(current_dt)
+        current_dt += datetime.timedelta(hours=1) # minimize db access by just incrementing the current dt with a local variable instead of accessing the db each time.
 
 # status of the processor after the run.
 print db.processor.find_one({"processor":"slogging"})
