@@ -12,6 +12,7 @@ swift_key = "DTaacz6qeuiCmfd6yNuuLYs5oAiHhhrX2aJbwfJ2sZb1hG2YxQPswm6tyn8rSV3D903
 
 slogging_container = "log_processing_data" # slogging container where the collector uploads to.
 dt_now_delta = 5 # hours prior to now that we will loop till (we will never have logs up to date).
+dt_miss_delta = 10 # hours back that misses should be kept (must be bigger than dt_now_delta).
 
 db = db_connect.db # connect to the usage db
 swift = swift_client.Connection(swift_auth_url, swift_user, swift_key) # create a swift client for accessing data in swift.
@@ -79,6 +80,9 @@ def process_dt(dt, from_miss=False):
         if "misses" in current_processor:
             if dt not in current_processor["misses"]: # current miss is not in the array already, add it.
                 db.processor.update({"processor":"slogging"}, {"$push":{"misses":dt}})
+            else: # it is already in misses, check if we should abandon it.
+                if dt < datetime.datetime.now() - datetime.timedelta(hours=dt_miss_delta):
+                    db.processor.update({"processor":"slogging"}, {"$pull":{"misses":dt}})
         else: # add a 'misses' array to the processor with this dt.
             db.processor.update({"processor":"slogging"}, {"$set":{"misses":[dt]}})
             
