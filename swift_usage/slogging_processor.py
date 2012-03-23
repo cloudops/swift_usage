@@ -11,7 +11,7 @@ swift_user = "admin"
 swift_key = "DTaacz6qeuiCmfd6yNuuLYs5oAiHhhrX2aJbwfJ2sZb1hG2YxQPswm6tyn8rSV3D903ctnrKe38EsAH1iCwVQA"
 
 slogging_container = "log_processing_data" # slogging container where the collector uploads to.
-dt_now_delta = 5 # hours prior to now that we will loop till (we will never have logs up to date).
+dt_now_delta = 3 # hours prior to now that we will loop till (we will never have logs up to date).
 dt_miss_delta = 10 # hours back that misses should be kept (must be bigger than dt_now_delta).
 
 db = db_connect.db # connect to the usage db

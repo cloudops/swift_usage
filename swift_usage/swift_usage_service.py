@@ -108,7 +108,8 @@ def usage(account):
                     item_count += 1
                 # increment the current datetime stamp by 1 hour to generate the next date_key.
                 current += datetime.timedelta(hours=1)
-            output['bytes_used'] = output['bytes_used'] / item_count # bytes_used should be an average.
+            if 'bytes_used' in output:
+                output['bytes_used'] = output['bytes_used'] / item_count # bytes_used should be an average.
         return output
 
 
