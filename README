@@ -1,0 +1,14 @@
+Provides the following features:
+ - Process the slogging data and populate a database of the usage data.
+ - Provides an API endpoint for the usage data.
+
+slogging needs to be correctly configured and running in order for this code to be useful at all.
+
+'slogging_processor.py' should be run as a cron in order to populate the database with the new data that slogging outputs.
+
+'swift_usage_service.py' should be run at boot in order to expose the API to access the usage data.
+
+'admin/create_admin.py' creates an admin user for the api (this user can generate new api keys).
+'admin/generate_key.py' is an example of how an admin would create new api keys via the API.
+
+'examples/get_usage.py' shows an example of how the usage api is used.
