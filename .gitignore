@@ -1,2 +1,5 @@
+deb_dist/
+dist/
+swift_usage-*
 swift_usage.egg-info
 *.pyc
