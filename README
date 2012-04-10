@@ -1,14 +1,37 @@
 Provides the following features:
- - Process the slogging data and populate a database of the usage data.
- - Provides an API endpoint for the usage data.
+ - Process the slogging data and populate a database of the usage data. (slogging_processor)
+ - Provides an API endpoint for the usage data. (swift_usage_service)
 
 slogging needs to be correctly configured and running in order for this code to be useful at all.
 
-'slogging_processor.py' should be run as a cron in order to populate the database with the new data that slogging outputs.
 
-'swift_usage_service.py' should be run at boot in order to expose the API to access the usage data.
+slogging_processor
+------------------
+This should be run as a cron to populate the database with the usage data from slogging as it is created.
 
-'admin/create_admin.py' creates an admin user for the api (this user can generate new api keys).
+Requires a connection to your swift machine with a user and key to be configured in '/etc/swift/swift-usage.conf'
+
+[slogging-processor]
+swift-auth-url = http://127.0.0.1:8080/v1.0
+swift-user = <your user>
+swift-key = <your key>
+(Check the swift-usage.conf.sample file for additional config options.)
+
+
+swift_usage_service
+-------------------
+This should be run at boot in order to expose the API to access the usage data.
+
+This service uses PasteServer and Bottle to expose the usage data via a REST API.  
+
+Check the swift-usage.conf.sample file for configuration options.
+
+
+additional details
+------------------
+'admin/create_admin.py' creates an admin user for the api (this user can generate new api keys and needs to be setup first).
 'admin/generate_key.py' is an example of how an admin would create new api keys via the API.
 
 'examples/get_usage.py' shows an example of how the usage api is used.
+
+'swift-usage.conf.sample' is an example of the config file to be placed in '/etc/swift/swift-usage.conf'

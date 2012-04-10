@@ -1,0 +1,17 @@
+[DEFAULT]
+#mongo-db-name = swift_usage
+#mongo-db-host = localhost
+#mongo-db-port = 27017
+
+[swift-usage-service]
+#service-host = 127.0.0.1
+#service-port = 8888
+#service-reloader = False
+
+[slogging-processor]
+swift-auth-url = http://127.0.0.1:8080/v1.0
+swift-user = <your user>
+swift-key = <your key>
+#slogging-container = log_processing_data
+#collect-till-delta = 3 # you will never have logs up to date.  search for logs up to this many hours ago.
+#misses-till-delta = 10 # retry missing hours till this many hours ago, then abandon. (MUST be larger than collect-till-delta)

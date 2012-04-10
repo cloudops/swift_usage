@@ -4,12 +4,11 @@ import hmac
 import urllib2
 import sys
 
-api_key = "1cfb3adfa204582c8c80c77ade697c006c7c7bcd"
-secret_key = "a64b8a86de2a1a011d6b51bc62212c7402a018dc"
+api_key = "92efa04a6269b84268f36ac9ccae03f4e34c5263"
+secret_key = "3274b46befebc2b47d6a69711642e787046e2d31"
 
 if len(sys.argv) <> 2:
-    print "Usage:"
-    print "python "+sys.argv[0]+" <label>"
+    print "Usage: python "+sys.argv[0]+" <label>"
     sys.exit(1)
 
 path = "/generate_key/"+sys.argv[1]

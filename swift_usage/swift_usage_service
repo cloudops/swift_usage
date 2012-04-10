@@ -1,11 +1,30 @@
 #!/usr/bin/env python
-
+from ConfigParser import ConfigParser
+import os.path
+import sys
 import bottle # setup: sudo pip install bottle
 import datetime
 import hmac
 import hashlib
 import urllib
 from swift_usage.utils import db_connect # requires pymongo
+
+conf_file = ""
+conf = ConfigParser({ # defaults
+            "service-host":"127.0.0.1",
+            "service-port":"8888",
+            "service-reloader":"False"
+        })
+
+if os.path.exists("/etc/swift/swift-usage.conf"):
+    conf_file = "/etc/swift/swift-usage.conf"
+    
+if os.path.exists(conf_file) and conf.read(conf_file):
+    # load optional config if it exists in conf file.
+    service_host = conf.get('swift-usage-service', 'service-host')
+    service_port = int(conf.get('swift-usage-service', 'service-port'))
+    service_reloader = conf.get('swift-usage-service', 'service-reloader')
+    
 
 # @decorator: verify that the incoming request has a valid apikey and signature.
 def authorize(callback):
@@ -135,4 +154,4 @@ def favicon():
 bottle.debug(True)
 
 # start the server.
-bottle.run(server=bottle.PasteServer, host='172.16.23.61', port=8888, reloader=True)
+bottle.run(server=bottle.PasteServer, host=service_host, port=service_port, reloader=service_reloader)
