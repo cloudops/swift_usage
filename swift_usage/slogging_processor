@@ -14,32 +14,39 @@ conf_file = ""
 conf = ConfigParser({ # defaults
             "slogging-container":"log_processing_data",
             "collect-till-delta":"3", # you will never have logs up to date.  search for logs up to this many hours ago.
-            "misses-till-delta":"10" # retry missing hours till this many hours ago, then abandon. (MUST be larger than collect-till-delta)
+            "misses-till-delta":"10", # retry missing hours till this many hours ago, then abandon. (MUST be larger than collect-till-delta)
+            "enable-logging":"False",
+            "log-file":"/var/log/swift/swift-usage.log" # make sure you have write permission for this file (or run slogging_processor as root)
         })
 
 if os.path.exists("/etc/swift/swift-usage.conf"):
     conf_file = "/etc/swift/swift-usage.conf"
     
-if os.path.exists(conf_file) and conf.read(conf_file):
-    try:
-        swift_auth_url = conf.get('slogging-processor', 'swift-auth-url')
-    except:
-        sys.exit("slogging_processor: config required, [slogging-processor] -> swift-auth-url")
-    try:
-        swift_user = conf.get('slogging-processor', 'swift-user')
-    except:
-        sys.exit("slogging_processor: config required, [slogging-processor] -> swift-user")
-    try:
-        swift_key = conf.get('slogging-processor', 'swift-key')
-    except:
-        sys.exit("slogging_processor: config required, [slogging-processor] -> swift-key")
-        
-    # load optional config if it exists in conf file.
-    slogging_container = conf.get('slogging-processor', 'slogging-container')
-    dt_now_delta = int(conf.get('slogging-processor', 'collect-till-delta'))
-    dt_miss_delta = int(conf.get('slogging-processor', 'misses-till-delta'))
-else:
-    sys.exit("slogging_processor: could not load config file '/etc/swift/swift-usage.conf'.")
+conf.read(conf_file)
+
+try:
+    swift_auth_url = conf.get('slogging-processor', 'swift-auth-url')
+except:
+    sys.exit("slogging_processor: config required, [slogging-processor] -> swift-auth-url")
+try:
+    swift_user = conf.get('slogging-processor', 'swift-user')
+except:
+    sys.exit("slogging_processor: config required, [slogging-processor] -> swift-user")
+try:
+    swift_key = conf.get('slogging-processor', 'swift-key')
+except:
+    sys.exit("slogging_processor: config required, [slogging-processor] -> swift-key")
+    
+# load optional config if it exists in conf file.
+slogging_container = conf.get('slogging-processor', 'slogging-container')
+dt_now_delta = int(conf.get('slogging-processor', 'collect-till-delta'))
+dt_miss_delta = int(conf.get('slogging-processor', 'misses-till-delta'))
+logging = conf.getboolean('DEFAULT', 'enable-logging')
+log_file = conf.get('DEFAULT', 'log-file')
+
+if logging:
+    log = open(log_file, 'a')
+
 
 db = db_connect.db # connect to the usage db
 swift = swift_client.Connection(swift_auth_url, swift_user, swift_key) # create a swift client for accessing data in swift.
@@ -58,7 +65,6 @@ def process_dt(dt, from_miss=False):
     file_substr = dt.strftime("%Y/%m/%d/%H/") # date substring for the current dt to match the incoming .csv.gz file
     file_arry = [name for name in log_names if file_substr in name] # there should only be one match (we only look at the first)
     if len(file_arry) > 0: # we have a matching log for this hour.
-        #print file_substr+" found log: "+file_arry[0]
         obj_headers, obj_data = swift.get_object(slogging_container, file_arry[0]) # get the log data
         d = zlib.decompressobj(16 + zlib.MAX_WBITS) # setup the decompresser | http://stackoverflow.com/questions/2423866/python-decompressing-gzip-chunk-by-chunk/2424549#2424549
         csv_data = csv.reader(d.decompress(obj_data).split('\n'), delimiter=',') # get the csv data from the log
@@ -74,7 +80,8 @@ def process_dt(dt, from_miss=False):
                 existing_usage = db.usage.find_one({"account":account})
                 if existing_usage: # there is an existing account with usage, add this usage to it.
                     if dt_key in existing_usage["usage"]: # update this hours data using this new data.
-                        #print "=> UPDATING hour '%s' for '%s'..." % (dt_key, account)
+                        if logging:
+                            log.write("UPDATING hour '%s' for '%s'...\n" % (dt_key, account))
                         existing_obj = existing_usage["usage"][dt_key]
                         usage_obj = {}
                         for i, header in enumerate(headers[2:]):
@@ -85,21 +92,26 @@ def process_dt(dt, from_miss=False):
                                 updated_obj[k] = (int(existing_obj[k]) + int(usage_obj[k])) / 2
                             else:
                                 updated_obj[k] = int(existing_obj[k]) + int(usage_obj[k])
-                        #print "data: "+str({dt_key:updated_obj})
+                        if logging:
+                            log.write("data: "+str({dt_key:updated_obj})+"\n")
                         db.usage.update({"account":account}, {"$set":{"usage."+dt_key:updated_obj}})
                     else: # add this data as this hours data.
-                        #print "=> INSERTING hour '%s' into '%s'..." % (dt_key, account)
+                        if logging:
+                            log.write("INSERTING hour '%s' into '%s'...\n" % (dt_key, account))
                         usage_obj = {}
                         for i, header in enumerate(headers[2:]):
                             usage_obj[header] = data[i+2]
-                        #print "data: "+str({dt_key:usage_obj})
+                        if logging:
+                            log.write("data: "+str({dt_key:usage_obj})+"\n")
                         db.usage.update({"account":account}, {"$set":{"usage."+dt_key:usage_obj}})
                 else: # create the user and seed it with the current data.
-                    #print "=> CREATING usage account '%s' starting from '%s'..." % (account, dt_key)
+                    if logging:
+                        log.write("CREATING usage account '%s' starting from '%s'...\n" % (account, dt_key))
                     usage_obj = {}
                     for i, header in enumerate(headers[2:]):
                         usage_obj[header] = data[i+2]
-                    #print "data: "+str({dt_key:usage_obj})
+                    if logging:
+                        log.write("data: "+str({dt_key:usage_obj})+"\n")
                     db.usage.insert({"account":account, "usage":{dt_key:usage_obj}})
                 
         if from_miss: # this dt was from the misses array, so remove it now that we found a matching log.
@@ -107,7 +119,6 @@ def process_dt(dt, from_miss=False):
             
     else: # we do not have a log for this hour in this run.
         current_processor = db.processor.find_one({"processor":"slogging"})
-        #print "processing miss: "+str(dt)
         if "misses" in current_processor:
             if dt not in current_processor["misses"]: # current miss is not in the array already, add it.
                 db.processor.update({"processor":"slogging"}, {"$push":{"misses":dt}})
@@ -130,7 +141,6 @@ if len(log_names) > 0:
     processor = db.processor.find_one({"processor":"slogging"})
     # if we do not have an slogging processor, create one.
     if not processor:
-        #print "no slogging processor, creating one..."
         # grab the first file in the slogging csv sequence and establish the current_dt
         file_pieces = log_names[0].split('/')
         current_dt = datetime.datetime(int(file_pieces[0]), int(file_pieces[1]), int(file_pieces[2]), int(file_pieces[3]))
@@ -149,7 +159,4 @@ if len(log_names) > 0:
     while current_dt <= last_dt:
         process_dt(current_dt)
         current_dt += datetime.timedelta(hours=1) # minimize db access by just incrementing the current dt with a local variable instead of accessing the db each time.
-
-# status of the processor after the run.
-#print db.processor.find_one({"processor":"slogging"})
     

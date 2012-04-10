@@ -18,12 +18,13 @@ conf = ConfigParser({ # defaults
 
 if os.path.exists("/etc/swift/swift-usage.conf"):
     conf_file = "/etc/swift/swift-usage.conf"
-    
-if os.path.exists(conf_file) and conf.read(conf_file):
-    # load optional config if it exists in conf file.
-    service_host = conf.get('swift-usage-service', 'service-host')
-    service_port = int(conf.get('swift-usage-service', 'service-port'))
-    service_reloader = conf.get('swift-usage-service', 'service-reloader')
+
+conf.read(conf_file)    
+
+# load optional config if it exists in conf file.
+service_host = conf.get('swift-usage-service', 'service-host')
+service_port = int(conf.get('swift-usage-service', 'service-port'))
+service_reloader = conf.get('swift-usage-service', 'service-reloader')
     
 
 # @decorator: verify that the incoming request has a valid apikey and signature.

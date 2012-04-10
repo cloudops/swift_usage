@@ -2,6 +2,8 @@
 #mongo-db-name = swift_usage
 #mongo-db-host = localhost
 #mongo-db-port = 27017
+#enable-logging = False
+#log-file = /var/log/swift/swift-usage.log
 
 [swift-usage-service]
 #service-host = 127.0.0.1

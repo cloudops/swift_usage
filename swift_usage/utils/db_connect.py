@@ -13,10 +13,11 @@ conf = ConfigParser({ # defaults
 if os.path.exists("/etc/swift/swift-usage.conf"):
     conf_file = "/etc/swift/swift-usage.conf"
     
-if os.path.exists(conf_file) and conf.read(conf_file):
-    # load config from the config file if it exists
-    mongo_db_name = conf.get('DEFAULT', 'mongo-db-name')
-    mongo_db_host = conf.get('DEFAULT', 'mongo-db-host')
-    mongo_db_port = int(conf.get('DEFAULT', 'mongo-db-port'))
+conf.read(conf_file)
+    
+# load config from the config file if it exists
+mongo_db_name = conf.get('DEFAULT', 'mongo-db-name')
+mongo_db_host = conf.get('DEFAULT', 'mongo-db-host')
+mongo_db_port = int(conf.get('DEFAULT', 'mongo-db-port'))
 
 db = pymongo.Connection(mongo_db_host, mongo_db_port)[mongo_db_name] # use the swift_usage database
