@@ -76,13 +76,15 @@ def process_dt(dt, from_miss=False):
                 header_row = False
             else: #data row, so process the data.
                 account = data[1]
+                mm_key = "%s%s" % (data[0][0:4], data[0][5:7]) # format: YYYY/MM/DD HH:MM:SS => YYYYMM
                 dt_key = "%s%s%s%s" % (data[0][0:4], data[0][5:7], data[0][8:10], data[0][11:13]) # format: YYYY/MM/DD HH:MM:SS => YYYYMMDDHH
-                existing_usage = db.usage.find_one({"account":account})
-                if existing_usage: # there is an existing account with usage, add this usage to it.
-                    if dt_key in existing_usage["usage"]: # update this hours data using this new data.
+                existing_monthly_usage = db.usage.find_one({"account":account, "month":mm_key})
+                if existing_monthly_usage: # there is an existing account with usage, add this usage to it.
+                    existing_hourly_usage = [usage for usage in existing_monthly_usage['usage'] if usage['hour'] == dt_key]
+                    if existing_hourly_usage: # update this hours data using this new data.
                         if logging:
                             log.write("UPDATING hour '%s' for '%s'...\n" % (dt_key, account))
-                        existing_obj = existing_usage["usage"][dt_key]
+                        existing_obj = existing_hourly_usage[0]['data']
                         usage_obj = {}
                         for i, header in enumerate(headers[2:]):
                             usage_obj[header] = data[i+2]
@@ -93,8 +95,8 @@ def process_dt(dt, from_miss=False):
                             else:
                                 updated_obj[k] = int(existing_obj[k]) + int(usage_obj[k])
                         if logging:
-                            log.write("data: "+str({dt_key:updated_obj})+"\n")
-                        db.usage.update({"account":account}, {"$set":{"usage."+dt_key:updated_obj}})
+                            log.write(str({"hour":dt_key, "data":updated_obj})+"\n")
+                        db.usage.update({"account":account, "month":mm_key, "usage.hour":dt_key}, {"$set":{"usage.$.data":updated_obj}})
                     else: # add this data as this hours data.
                         if logging:
                             log.write("INSERTING hour '%s' into '%s'...\n" % (dt_key, account))
@@ -102,8 +104,8 @@ def process_dt(dt, from_miss=False):
                         for i, header in enumerate(headers[2:]):
                             usage_obj[header] = data[i+2]
                         if logging:
-                            log.write("data: "+str({dt_key:usage_obj})+"\n")
-                        db.usage.update({"account":account}, {"$set":{"usage."+dt_key:usage_obj}})
+                            log.write(str({"hour":dt_key, "data":usage_obj})+"\n")
+                        db.usage.update({"account":account, "month":mm_key}, {"$push":{"usage":{"hour":dt_key, "data":usage_obj}}})
                 else: # create the user and seed it with the current data.
                     if logging:
                         log.write("CREATING usage account '%s' starting from '%s'...\n" % (account, dt_key))
@@ -111,8 +113,8 @@ def process_dt(dt, from_miss=False):
                     for i, header in enumerate(headers[2:]):
                         usage_obj[header] = data[i+2]
                     if logging:
-                        log.write("data: "+str({dt_key:usage_obj})+"\n")
-                    db.usage.insert({"account":account, "usage":{dt_key:usage_obj}})
+                        log.write(str({"hour":dt_key, "data":usage_obj})+"\n")
+                    db.usage.insert({"account":account, "month":mm_key, "usage":[{"hour":dt_key, "data":usage_obj}]})
                 
         if from_miss: # this dt was from the misses array, so remove it now that we found a matching log.
             db.processor.update({"processor":"slogging"}, {"$pull":{"misses":dt}})

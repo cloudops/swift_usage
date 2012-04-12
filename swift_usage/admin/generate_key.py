@@ -4,8 +4,8 @@ import hmac
 import urllib2
 import sys
 
-api_key = "92efa04a6269b84268f36ac9ccae03f4e34c5263"
-secret_key = "3274b46befebc2b47d6a69711642e787046e2d31"
+api_key = "f3b315bb1cb0d091c6c38452828bea3abc49387f"
+secret_key = "7313af9066ca0a9f1dc4327336c384263c42ed14"
 
 if len(sys.argv) <> 2:
     print "Usage: python "+sys.argv[0]+" <label>"

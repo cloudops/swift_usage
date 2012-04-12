@@ -96,40 +96,33 @@ def usage(account):
         output = {}
         db = db_connect.db
         
-        # find the account usage via the account name passed via the url
-        usage = db.usage.find_one({"account":account})
-        if usage:
-            # setup the 'from' and 'to' datetime objects which will control cycling through the hourly data.
-            f_dt = datetime.datetime(int(f_str[0:4]), int(f_str[4:6]), int(f_str[6:8]), int(f_str[8:10])) # format: YYYYMMDDHH
-            t_dt = datetime.datetime(int(t_str[0:4]), int(t_str[4:6]), int(t_str[6:8]), int(t_str[8:10])) # format: YYYYMMDDHH
-            
-            # handle the unique request for a single hour of data.
-            if f_dt == t_dt: # start and end dates are the same
-                date_key = f_dt.strftime("%Y%m%d%H") # create the date_key from the datetime
-                if date_key in usage['usage']:
-                    for k,v in usage['usage'][date_key].items(): # loop through the database data
-                        if k in labels_to_output: # limit the data as per config
+        # handle the unique request for a single hour of data.
+        if f_str == t_str: # start and end dates are the same
+            usage = db.usage.find_one({"account":account, "usage.hour":f_str})
+            if usage:
+                hourly_usage = [data for data in usage['usage'] if data['hour'] == f_str]
+                if hourly_usage:
+                    for k,v in hourly_usage[0]['data'].items(): # loop through the database data
+                        if k in labels_to_output: # limit the data as per config                        
                             output[k] = int(v) # put the data in the output object.
+            return output
+        
+        # handle all requests other than the 'single hour' request.
+        usage_data = []
+        for month_data in db.usage.find({"account":account, "usage.hour":{"$gte":f_str}, "usage.hour":{"$lt":t_str}}):
+            monthly_usage = [data for data in month_data['usage'] if data['hour'] >= f_str and data['hour'] < t_str]
+            usage_data += monthly_usage
             
-            # handle all requests other than the 'single hour' request.
-            # start <= usage < end
-            current = f_dt # set the 'current' datetime object which will increment by 1 hour and act as a key datestamp.
-            item_count = 0
-            while current < t_dt:
-                # check for data in the database
-                date_key = current.strftime("%Y%m%d%H") # create the date_key from the current datetime
-                if date_key in usage['usage']:
-                    for k,v in usage['usage'][date_key].items(): # loop through the database data
-                        if k in labels_to_output: # limit the data as per config
-                            if k in output:
-                                output[k] = int(output[k]) + int(v) # this label exists, sum it with the current value
-                            else:
-                                output[k] = int(v) # this label does not exist yet, seed it with the current value
-                    item_count += 1
-                # increment the current datetime stamp by 1 hour to generate the next date_key.
-                current += datetime.timedelta(hours=1)
-            if 'bytes_used' in output:
-                output['bytes_used'] = output['bytes_used'] / item_count # bytes_used should be an average.
+        item_count = len(usage_data)
+        for usage in usage_data:
+            for k,v in usage['data'].items(): # loop through the database data
+                if k in labels_to_output: # limit the data as per config
+                    if k in output:
+                        output[k] = int(output[k]) + int(v) # this label exists, sum it with the current value
+                    else:
+                        output[k] = int(v) # this label does not exist yet, seed it with the current value
+        if 'bytes_used' in output:
+            output['bytes_used'] = output['bytes_used'] / item_count # bytes_used should be an average.
         return output
 
 

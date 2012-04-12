@@ -8,8 +8,8 @@ account = "syntenic"
 start = "2012030100"
 end = "2012060100"
 
-api_key = "57fab605eff621987b3b5df15675465efb649e75"
-secret_key = "c3d2f416b278bfc33052f60dbafdb889c1fe0613"
+api_key = "974bb42a36123f93c883a7f407e004e3ea3b28f9"
+secret_key = "3856d0b3f8e00cca007bcf41ce9917f69bc4962a"
 
 path = "/usage/"+account
 
