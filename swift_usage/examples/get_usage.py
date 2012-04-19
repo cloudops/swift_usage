@@ -4,12 +4,12 @@ import hashlib
 import hmac
 import urllib2
 
-account = "syntenic"
-start = "2012030100"
-end = "2012060100"
+account = "admin"
+start = "2012030000"
+end = "2012060000"
 
-api_key = "974bb42a36123f93c883a7f407e004e3ea3b28f9"
-secret_key = "3856d0b3f8e00cca007bcf41ce9917f69bc4962a"
+api_key = "364fe8d4f83c4755a943d3777ddefbf2ea2bd060"
+secret_key = "f21291bfd17de045bc59a461c24471f3ad5b2aa4"
 
 path = "/usage/"+account
 
