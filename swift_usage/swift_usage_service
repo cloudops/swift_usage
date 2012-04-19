@@ -40,7 +40,7 @@ def authorize(callback):
         
         if "apikey" in bottle.request.query:
             db = db_connect.db
-            keys = db.auth.find_one({"api_key":bottle.request.query.apikey})
+            keys = db.keys.find_one({"api_key":bottle.request.query.apikey})
             if keys:
                 signature = hmac.new(keys["secret_key"].encode('utf-8'), sig_str, hashlib.sha1).hexdigest()
                 if signature == bottle.request.query.signature:
@@ -59,7 +59,7 @@ def verify_admin(callback):
     def validate(*args, **kwargs):
         if "apikey" in bottle.request.query:
             db = db_connect.db
-            keys = db.auth.find_one({"api_key":bottle.request.query.apikey})
+            keys = db.keys.find_one({"api_key":bottle.request.query.apikey})
             if keys:
                 if "admin" in keys and keys["admin"]:
                     return callback(*args, **kwargs)
@@ -134,7 +134,7 @@ def generate_key(label):
     keys["label"] = label
     keys["api_key"] = hmac.new('cloudops', str(datetime.datetime.now()), hashlib.sha1).hexdigest()
     keys["secret_key"] = hmac.new(keys["api_key"], 'cloudops', hashlib.sha1).hexdigest()
-    db.auth.insert({"api_key":keys["api_key"], "secret_key":keys["secret_key"], "label":keys["label"]})
+    db.keys.insert({"api_key":keys["api_key"], "secret_key":keys["secret_key"], "label":keys["label"]})
     return keys
 
 
