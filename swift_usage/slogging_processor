@@ -45,7 +45,7 @@ slogging_container = conf.get('slogging-processor', 'slogging-container')
 dt_now_delta = int(conf.get('slogging-processor', 'collect-till-delta'))
 dt_miss_delta = int(conf.get('slogging-processor', 'misses-till-delta'))
 logging = conf.getboolean('DEFAULT', 'enable-logging')
-key_salt = conf.getboolean('DEFAULT', 'key-salt')
+key_salt = conf.get('DEFAULT', 'key-salt')
 log_file = conf.get('DEFAULT', 'log-file')
 
 if logging:
