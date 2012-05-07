@@ -7,6 +7,8 @@ import sys
 import datetime
 import csv
 import zlib
+import hmac
+import hashlib
 from swift_usage.utils import db_connect # requires pymongo
 from swift_usage.utils import swift_client
 
@@ -16,6 +18,7 @@ conf = ConfigParser({ # defaults
             "collect-till-delta":"3", # you will never have logs up to date.  search for logs up to this many hours ago.
             "misses-till-delta":"10", # retry missing hours till this many hours ago, then abandon. (MUST be larger than collect-till-delta)
             "enable-logging":"False",
+            "key-salt":"89cd705d9ed8161855d573c09794e191",
             "log-file":"/var/log/swift/swift-usage.log" # make sure you have write permission for this file (or run slogging_processor as root)
         })
 
@@ -42,6 +45,7 @@ slogging_container = conf.get('slogging-processor', 'slogging-container')
 dt_now_delta = int(conf.get('slogging-processor', 'collect-till-delta'))
 dt_miss_delta = int(conf.get('slogging-processor', 'misses-till-delta'))
 logging = conf.getboolean('DEFAULT', 'enable-logging')
+key_salt = conf.getboolean('DEFAULT', 'key-salt')
 log_file = conf.get('DEFAULT', 'log-file')
 
 if logging:
@@ -148,6 +152,18 @@ if len(log_names) > 0:
         current_dt = datetime.datetime(int(file_pieces[0]), int(file_pieces[1]), int(file_pieces[2]), int(file_pieces[3]))
         db.processor.insert({"processor":"slogging", "current_dt":current_dt})
         processor = db.processor.find_one({"processor":"slogging"})
+        # make sure there is a set of admin keys in the db.
+        admin_keys = db.processor.find_one({"admin":"True"})
+        if not admin_keys:
+            keys = {}
+            keys["label"] = "admin"
+            keys["admin"] = "True"
+            keys["api_key"] = hmac.new(key_salt, str(datetime.datetime.now()), hashlib.sha1).hexdigest()
+            keys["secret_key"] = hmac.new(keys["api_key"], key_salt, hashlib.sha1).hexdigest()
+            db.keys.insert({"api_key":keys["api_key"], "secret_key":keys["secret_key"], "label":keys["label"], "admin":keys["admin"]})
+            log.write(str({"admin_keys":keys})+"\n")
+        else:
+            log.write(str({"admin_keys":admin_keys})+"\n")
 
     # process the previous misses
     if "misses" in processor:
